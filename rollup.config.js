@@ -1,9 +1,10 @@
 import babel from "rollup-plugin-babel";
+import uglify from 'rollup-plugin-uglify';
 
-export default {
-  input: "src/index.js",
+var config = {
+  input: process.env.entry,
   output: {
-    file: "dist/xbossdebug.js",
+    file: process.env.dest,
     format: "umd",
     name: "XbossDebug"
   },
@@ -13,3 +14,9 @@ export default {
     })
   ]
 };
+
+if (process.env.uglify) {
+  config.plugins.push(uglify());
+}
+
+export default config
