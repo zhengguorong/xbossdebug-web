@@ -8,9 +8,12 @@
   <script src="../dist/xbossdebug.js"></script>
   <script>
     var xbossdebug = new XbossDebug()
-  </script>
+    function trackError(name){
+      throw new Error('my Error msg')
+    }
+   </script>
 </head>
 <body>
-  
+  <div onclick="trackError('zgr')">click me to track Error</div>
 </body>
 </html>

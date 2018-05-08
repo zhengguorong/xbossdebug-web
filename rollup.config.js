@@ -10,7 +10,8 @@ var config = {
   },
   plugins: [
     babel({
-      exclude: "node_modules/**"
+      exclude: 'node_modules/**',
+      plugins: ['transform-class-properties']
     })
   ]
 };

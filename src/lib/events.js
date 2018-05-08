@@ -1,9 +1,9 @@
 /**
  * 事件管理器
  */
-class Events {
+let Events = (supperclass) => class extends supperclass {
   constructor(options) {
-    super(options);
+    super(options)
     this.handlers = {};
   }
   /**
@@ -42,4 +42,4 @@ class Events {
     return true;
   }
 }
-export default Event;
+export default Events;
