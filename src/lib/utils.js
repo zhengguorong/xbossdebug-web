@@ -251,6 +251,13 @@ var utils = {
               'level': 4
           };
       }
+  },
+  handleAddListener: function(type, fn) {
+    if (window.addEventListener) {
+      window.addEventListener(type, fn)
+    } else {
+      window.attachEvent('on' + type, fn)
+    }
   }
 };
 

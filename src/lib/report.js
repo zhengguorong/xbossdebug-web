@@ -5,8 +5,9 @@ let Report = supperclass =>
     constructor(options) {
       super(options);
       this.errorQueue = [];
+      this.perfQueue = [];
       this.repeatList = {};
-      this.url = this.config.url + "?err_msg=";
+      this.url = this.config.url + `?project_name=${this.config.projectName}&err_msg=`;
       ["log", "debug", "info", "warn", "error"].forEach((type, index) => {
         this[type] = msg => {
           return this.handleMsg(msg, type, index);
@@ -69,17 +70,11 @@ let Report = supperclass =>
       });
       return url;
     }
-    report(cb) {
-      let mergeReport = this.config.mergeReport;
-      if (this.errorQueue.length === 0) return this.url;
-      let curQueue = mergeReport ? this.errorQueue : [this.errorQueue.shift()];
-    }
     // 发送
     send(cb) {
       if (!this.trigger("beforeReport")) return;
       let callback = cb || utils.noop;
       let delay = this.config.mergeReport ? this.config.delay : 0;
-
       setTimeout(() => {
         this.report(callback);
       }, delay);
@@ -128,6 +123,19 @@ let Report = supperclass =>
         this.send();
       }
       return errorMsg;
+    }
+    // 上报性能数据
+    reportPerformance (data, cb) {
+      this.trigger("beforeReportPerformance")
+      data = utils.assignObject(utils.getSystemParams(), data);
+      let params = utils.serializeObj(data)
+      let url = this.url + params;
+      this.request(url, () => {
+        if (cb) {
+          cb.call(this);
+        }
+        this.trigger("afterReportPerformance");
+      });
     }
   };
 

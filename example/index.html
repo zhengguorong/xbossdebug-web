@@ -5,15 +5,17 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta http-equiv="X-UA-Compatible" content="ie=edge">
   <title>Document</title>
+  <script src="https://code.jquery.com/jquery-3.3.1.min.js"></script>
   <script src="../dist/xbossdebug.js"></script>
   <script>
-    var xbossdebug = new XbossDebug()
+    var xbossdebug = new XbossDebug({url: "http://127.0.0.1:8090/read.gif"})
     function trackError(name){
       throw new Error('my Error msg')
+      console.error('test')
     }
    </script>
 </head>
-<body>
+<body id="body">
   <div onclick="trackError('zgr')">click me to track Error</div>
 </body>
 </html>

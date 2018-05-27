@@ -1,16 +1,20 @@
 import config from "./config";
-import localStorage from './localStorage';
+import localStorage from "./localStorage";
 import events from "./events";
 import report from "./report";
+import proxy from "./proxy";
 import utils from "./utils";
 
-class XbossDebug extends events(localStorage(report(config))) {
+class XbossDebug extends events(localStorage(report(proxy(config)))) {
   constructor(options) {
     super(options);
     this.breadcrumbs = [];
     this.rewriteError();
     this.rewritePromiseError();
     this.catchClickQueue(); // 用于收集用户操作路径
+    setTimeout(() => {
+      this.catchPerformance(); // 获取应用性能
+    }, 1000);
   }
   // 由于有些浏览器onError的时候信息不一致，为了兼容不同浏览器，重写onError方法，如果没有错误信息，获取调用栈自行组装
   rewriteError() {
@@ -41,7 +45,7 @@ class XbossDebug extends events(localStorage(report(config))) {
           : "";
       }
       if (reportMsg) {
-        // TODO errror 方法是在哪里定义的
+        // error方法在report.js定义，还有"log", "debug", "info", "warn"
         this.error({
           msg: reportMsg,
           rowNum: line,
@@ -179,6 +183,35 @@ class XbossDebug extends events(localStorage(report(config))) {
       this.breadcrumbs.push(info);
       this.breadcrumbs.length > 10 && this.breadcrumbs.shift();
     }
+  };
+  catchPerformance() {
+    window.performance && utils.handleAddListener("load", this._getTiming());
+  }
+  _getTiming = () => {
+    var time = performance.timing;
+    var timingObj = {};
+    var loadTime = (time.loadEventEnd - time.loadEventStart) / 1000;
+    if (loadTime < 0) {
+      setTimeout(() => {
+        this._getTiming();
+      }, 200);
+      return;
+    }
+    timingObj["request"] = time.responseEnd - time.requestStart;
+    timingObj["domrender"] = time.domComplete - time.domInteractive; // dom解析时间
+    timingObj["fp"] = time.responseStart - time.navigationStart; // 白屏时间
+    timingObj["domready"] =
+      time.domContentLoadedEventEnd - time.navigationStart;
+    timingObj["onload"] = time.loadEventEnd - time.navigationStart;
+    timingObj["fmp"] = parseInt(
+      performance.getEntriesByType("paint")[0].startTime
+    ); // 首次渲染
+    timingObj["TTI"] = time.domInteractive - time.requestStart;
+    var item;
+    for (item in timingObj) {
+      console.log(item + ":" + timingObj[item] + "毫秒(ms)");
+    }
+    this.reportPerformance(timingObj);
   };
 }
 

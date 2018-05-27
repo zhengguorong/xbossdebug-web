@@ -311,6 +311,13 @@
                   'level': 4
               };
           }
+      },
+      handleAddListener: function handleAddListener(type, fn) {
+          if (window.addEventListener) {
+              window.addEventListener(type, fn);
+          } else {
+              window.attachEvent('on' + type, fn);
+          }
       }
   };
 
@@ -319,6 +326,7 @@
           classCallCheck(this, Config);
 
           this.config = {
+              projectName: 'xbossdebug',
               proxyAll: false,
               mergeReport: true, // mergeReport 是否合并上报， false 关闭， true 启动（默认）
               delay: 1000, // 当 mergeReport 为 true 可用，延迟多少毫秒，合并缓冲区中的上报（默认）
@@ -555,8 +563,9 @@
         var _this = possibleConstructorReturn(this, (_class.__proto__ || Object.getPrototypeOf(_class)).call(this, options));
 
         _this.errorQueue = [];
+        _this.perfQueue = [];
         _this.repeatList = {};
-        _this.url = _this.config.url + "?err_msg=";
+        _this.url = _this.config.url + ("?project_name=" + _this.config.projectName + "&err_msg=");
         ["log", "debug", "info", "warn", "error"].forEach(function (type, index) {
           _this[type] = function (msg) {
             return _this.handleMsg(msg, type, index);
@@ -627,13 +636,6 @@
           });
           return url;
         }
-      }, {
-        key: "report",
-        value: function report(cb) {
-          var mergeReport = this.config.mergeReport;
-          if (this.errorQueue.length === 0) return this.url;
-          var curQueue = mergeReport ? this.errorQueue : [this.errorQueue.shift()];
-        }
         // 发送
 
       }, {
@@ -644,7 +646,6 @@
           if (!this.trigger("beforeReport")) return;
           var callback = cb || utils.noop;
           var delay = this.config.mergeReport ? this.config.delay : 0;
-
           setTimeout(function () {
             _this3.report(callback);
           }, delay);
@@ -698,9 +699,352 @@
           }
           return errorMsg;
         }
+        // 上报性能数据
+
+      }, {
+        key: "reportPerformance",
+        value: function reportPerformance(data, cb) {
+          var _this4 = this;
+
+          this.trigger("beforeReportPerformance");
+          data = utils.assignObject(utils.getSystemParams(), data);
+          var params = utils.serializeObj(data);
+          var url = this.url + params;
+          this.request(url, function () {
+            if (cb) {
+              cb.call(_this4);
+            }
+            _this4.trigger("afterReportPerformance");
+          });
+        }
       }]);
       return _class;
     }(supperclass);
+  };
+
+  /**
+   * @author  zdongh2016
+   * @fileoverview  Peep
+   * @date 2017/02/16
+   */
+
+  var proxy = function proxy(supperclass) {
+      return function (_supperclass) {
+          inherits(_class, _supperclass);
+
+          function _class(options) {
+              classCallCheck(this, _class);
+
+              var _this2 = possibleConstructorReturn(this, (_class.__proto__ || Object.getPrototypeOf(_class)).call(this, options));
+
+              _this2.consoleList = {};
+
+              _this2.timeoutkey = null;
+              _this2.proxy();
+              /*window.onload = () => {
+                  this.proxy();
+              };*/
+              return _this2;
+          }
+
+          createClass(_class, [{
+              key: 'proxy',
+              value: function proxy() {
+                  var _config = this.config;
+                  if (_config.proxyAll) {
+                      this.proxyJquery().proxyModules().proxyTimer().proxyConsole();
+                  } else {
+                      _config.proxyJquery && this.proxyJquery();
+                      _config.proxyModules && this.proxyModules();
+                      _config.proxyTimer && this.proxyTimer();
+                      _config.proxyConsole && this.proxyConsole();
+                  }
+              }
+          }, {
+              key: 'proxyConsole',
+              value: function proxyConsole() {
+                  var _this3 = this;
+
+                  ['log', 'debug', 'info', 'warn', 'error'].forEach(function (type, index) {
+                      var _console = window.console[type];
+                      window.console[type] = function () {
+                          for (var _len = arguments.length, params = Array(_len), _key = 0; _key < _len; _key++) {
+                              params[_key] = arguments[_key];
+                          }
+
+                          _this3.reportConsole(_console, type, index, utils.toArray(params));
+                      };
+                  });
+                  return this;
+              }
+              // 劫持原生js
+
+          }, {
+              key: 'proxyTimer',
+              value: function proxyTimer() {
+                  window.setTimeout = this.catTimeout(setTimeout);
+                  window.setInterval = this.catTimeout(setInterval);
+                  return this;
+              }
+              // 劫持jquery
+
+          }, {
+              key: 'proxyJquery',
+              value: function proxyJquery($) {
+                  var _this4 = this;
+
+                  var _$ = $ || window.$;
+
+                  if (!_$ || !_$.event) {
+                      return this;
+                  }
+
+                  var _add = void 0,
+                      _remove = void 0;
+                  if (_$.zepto) {
+                      _add = _$.fn.on, _remove = _$.fn.off;
+
+                      _$.fn.on = this.makeArgsTry(_add);
+
+                      _$.fn.off = function () {
+                          var args = [];
+                          utils.toArray(arguments).forEach(function (v) {
+                              utils.isFunction(v) && v.tryWrap && (v = v.tryWrap);
+                              args.push(v);
+                          });
+                          return _remove.apply(this, args);
+                      };
+                  } else if (_$.fn.jquery) {
+                      _add = _$.event.add, _remove = _$.event.remove;
+
+                      _$.event.add = this.makeArgsTry(_add);
+                      _$.event.remove = function () {
+                          for (var _len2 = arguments.length, params = Array(_len2), _key2 = 0; _key2 < _len2; _key2++) {
+                              params[_key2] = arguments[_key2];
+                          }
+
+                          var args = [];
+
+                          utils.toArray(params).forEach(function (v) {
+                              utils.typeDecide(v, 'Function') && v.tryWrap && (v = v.tryWrap);
+                              args.push(v);
+                          });
+                          return _remove.apply(_this4, args);
+                      };
+                  }
+
+                  var _ajax = _$.ajax;
+
+                  if (_ajax) {
+                      _$.ajax = function (url, setting) {
+                          if (!setting) {
+                              setting = url;
+                              url = undefined;
+                          }
+                          _this4.makeObjTry(setting);
+                          if (url) return _ajax.call(_$, url, setting);
+                          return _ajax.call(_$, setting);
+                      };
+                  }
+                  return this;
+              }
+          }, {
+              key: 'reportConsole',
+              value: function reportConsole(func, type, level, args) {
+                  var _this5 = this;
+
+                  this.on('beforeReport', function () {
+                      //启用console，强制merge
+                      _this5.config.mergeReport = true;
+                  });
+                  var msg = '';
+                  args.forEach(function (v) {
+                      if (utils.typeDecide(v, 'string')) {
+                          msg += v;
+                      } else if (utils.typeDecide(v, 'array')) {
+                          msg += '[' + v.join(',') + ']';
+                      } else {
+                          msg += utils.stringify(v);
+                      }
+                  });
+                  var typeList = this.consoleList[type];
+                  typeList = typeList || [];
+                  typeList.push(utils.assignObject(utils.getSystemParams(), {
+                      msg: msg,
+                      level: level,
+                      rowNum: '',
+                      colNum: '',
+                      targetUrl: ''
+                  }));
+                  if (typeList.length > 10) {
+                      this.errorQueue = this.errorQueue.concat(typeList);
+                      this.send(true, function () {
+                          typeList = [];
+                      });
+                  }
+                  return func.apply(this, args);
+              }
+              // 劫持seajs
+
+          }, {
+              key: 'proxyModules',
+              value: function proxyModules() {
+                  var _require = window.require,
+                      _define = window.define;
+
+                  if (_define && _define.amd && _require) {
+                      window.require = this.catArgs(_require);
+                      utils.assignObject(window.require, _require);
+
+                      window.define = this.catArgs(_define);
+                      utils.assignObject(window.define, _define);
+                  }
+                  if (window.seajs && _define) {
+                      var _this = this;
+                      window.define = function () {
+                          var arg,
+                              args = [];
+                          for (var i = 0, l = arguments.length; i < l; i++) {
+                              arg = arguments[i];
+                              if (utils.isFunction(arg)) {
+                                  arg = _this.cat(arg);
+                                  //seajs should use toString parse dependencies , so rewrite it
+                                  arg.toString = function (orgArg) {
+                                      return function () {
+                                          return orgArg.toString();
+                                      };
+                                  }(arguments[i]);
+                              }
+                              args.push(arg);
+                          }
+                          return _define.apply(this, args);
+                      };
+                      window.seajs.use = this.catArgs(window.seajs.use);
+
+                      utils.assignObject(window.define, _define);
+                  }
+                  return this;
+              }
+              // 劫持自定义方法
+
+          }, {
+              key: 'proxyCustomFn',
+              value: function proxyCustomFn(func) {
+                  return this.cat(func);
+              }
+          }, {
+              key: 'proxyCustomObj',
+              value: function proxyCustomObj(obj) {
+                  return this.makeObjTry(obj);
+              }
+          }, {
+              key: 'cat',
+              value: function cat(func, args) {
+                  var _this6 = this;
+
+                  return function () {
+                      for (var _len3 = arguments.length, param = Array(_len3), _key3 = 0; _key3 < _len3; _key3++) {
+                          param[_key3] = arguments[_key3];
+                      }
+
+                      try {
+                          args = args || utils.toArray(param);
+                          return func.apply(_this6, args);
+                      } catch (error) {
+                          var err = utils.getErrorInfo(error);
+                          _this6.trigger('tryError', [err]);
+                          _this6.error(err);
+                          if (!_this6.timeoutkey) {
+                              var orgOnerror = window.onerror;
+                              window.onerror = utils.noop;
+                              _this6.timeoutkey = setTimeout(function () {
+                                  window.onerror = orgOnerror;
+                                  _this6.timeoutkey = null;
+                              }, 50);
+                          }
+                          throw error;
+                      }
+                  };
+              }
+          }, {
+              key: 'catArgs',
+              value: function catArgs(func) {
+                  var _this7 = this;
+
+                  return function () {
+                      for (var _len4 = arguments.length, params = Array(_len4), _key4 = 0; _key4 < _len4; _key4++) {
+                          params[_key4] = arguments[_key4];
+                      }
+
+                      var args = [];
+                      utils.toArray(params).forEach(function (v) {
+                          utils.isFunction(v) && (v = _this7.cat(v));
+                          args.push(v);
+                      });
+                      return func.apply(window, args);
+                  };
+              }
+          }, {
+              key: 'catTimeout',
+              value: function catTimeout(func) {
+                  var _this8 = this;
+
+                  return function () {
+                      for (var _len5 = arguments.length, params = Array(_len5), _key5 = 0; _key5 < _len5; _key5++) {
+                          params[_key5] = arguments[_key5];
+                      }
+
+                      var timeArgs = utils.toArray(params);
+                      var cb = timeArgs[0];
+                      var timeout = timeArgs[1];
+                      if (utils.isString(cb)) {
+                          try {
+                              cb = new Function(cb);
+                          } catch (err) {
+                              throw err;
+                          }
+                      }
+                      // for setTimeout(function, delay, param1, ...)
+                      var args = timeArgs.splice(2);
+
+                      cb = _this8.cat(cb, args.length && args);
+
+                      return func(cb, timeout);
+                  };
+              }
+          }, {
+              key: 'makeArgsTry',
+              value: function makeArgsTry(func, self) {
+                  var _this = this;
+                  return function () {
+                      //this指向 故：不能使用箭头函数   
+                      var tmp,
+                          args = [];
+                      utils.toArray(arguments).forEach(function (v) {
+                          utils.isFunction(v) && (tmp = _this.cat(v)) && (v.tryWrap = tmp) && (v = tmp);
+                          args.push(v);
+                      });
+                      return func.apply(self || this, args);
+                  };
+              }
+          }, {
+              key: 'makeObjTry',
+              value: function makeObjTry(obj) {
+                  var key = void 0;
+                  var value = void 0;
+                  for (key in obj) {
+                      if (obj.hasOwnProperty(key)) {
+                          value = obj[key];
+                          if (utils.isFunction(value)) {
+                              obj[key] = this.cat(value);
+                          }
+                      }
+                  }
+                  return obj;
+              }
+          }]);
+          return _class;
+      }(supperclass);
   };
 
   var XbossDebug = function (_events) {
@@ -748,10 +1092,37 @@
         }
       };
 
+      _this._getTiming = function () {
+        var time = performance.timing;
+        var timingObj = {};
+        var loadTime = (time.loadEventEnd - time.loadEventStart) / 1000;
+        if (loadTime < 0) {
+          setTimeout(function () {
+            _this._getTiming();
+          }, 200);
+          return;
+        }
+        timingObj["request"] = time.responseEnd - time.requestStart;
+        timingObj["domrender"] = time.domComplete - time.domInteractive; // dom解析时间
+        timingObj["fp"] = time.responseStart - time.navigationStart; // 白屏时间
+        timingObj["domready"] = time.domContentLoadedEventEnd - time.navigationStart;
+        timingObj["onload"] = time.loadEventEnd - time.navigationStart;
+        timingObj["fmp"] = parseInt(performance.getEntriesByType("paint")[0].startTime); // 首次渲染
+        timingObj["TTI"] = time.domInteractive - time.requestStart;
+        var item;
+        for (item in timingObj) {
+          console.log(item + ":" + timingObj[item] + "毫秒(ms)");
+        }
+        _this.reportPerformance(timingObj);
+      };
+
       _this.breadcrumbs = [];
       _this.rewriteError();
       _this.rewritePromiseError();
       _this.catchClickQueue(); // 用于收集用户操作路径
+      setTimeout(function () {
+        _this.catchPerformance(); // 获取应用性能
+      }, 1000);
       return _this;
     }
     // 由于有些浏览器onError的时候信息不一致，为了兼容不同浏览器，重写onError方法，如果没有错误信息，获取调用栈自行组装
@@ -783,7 +1154,7 @@
             reportMsg += reportMsg.type ? "--" + reportMsg.type + "--" + (reportMsg.target ? reportMsg.target.tagName + "::" + reportMsg.target.src : "") : "";
           }
           if (reportMsg) {
-            // TODO errror 方法是在哪里定义的
+            // error方法在report.js定义，还有"log", "debug", "info", "warn"
             _this2.error({
               msg: reportMsg,
               rowNum: line,
@@ -901,9 +1272,14 @@
           document.attachEvent("onclick", this._storeClickedDom);
         }
       }
+    }, {
+      key: "catchPerformance",
+      value: function catchPerformance() {
+        window.performance && utils.handleAddListener("load", this._getTiming());
+      }
     }]);
     return XbossDebug;
-  }(Events(Localstroage(Report(Config))));
+  }(Events(Localstroage(Report(proxy(Config)))));
 
   return XbossDebug;
 
