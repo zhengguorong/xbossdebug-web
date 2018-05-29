@@ -83,7 +83,6 @@
                   parames += name + '=' + obj[name] + '^';
               }
           });
-          console.log(parames);
           return encodeURIComponent(parames.substr(0, parames.length - 1));
       },
       stringify: function stringify(obj) {
@@ -326,11 +325,11 @@
           classCallCheck(this, Config);
 
           this.config = {
-              projectName: 'xbossdebug',
+              key: '',
               proxyAll: false,
               mergeReport: true, // mergeReport 是否合并上报， false 关闭， true 启动（默认）
               delay: 1000, // 当 mergeReport 为 true 可用，延迟多少毫秒，合并缓冲区中的上报（默认）
-              url: "http://127.0.0.1", // 指定错误上报地址
+              url: "http://www.xbossdebug.cn/read.gif", // 指定错误上报地址
               except: [/^Script error\.?/, /^Javascript error: Script error\.? on line 0/], // 忽略某个错误
               random: 1, // 抽样上报，1~0 之间数值，1为100%上报（默认 1）
               repeat: 5, // 重复上报次数(对于同一个错误超过多少次不上报)
@@ -565,7 +564,7 @@
         _this.errorQueue = [];
         _this.perfQueue = [];
         _this.repeatList = {};
-        _this.url = _this.config.url + ("?project_name=" + _this.config.projectName + "&err_msg=");
+        _this.url = _this.config.url + '?err_msg=';
         ["log", "debug", "info", "warn", "error"].forEach(function (type, index) {
           _this[type] = function (msg) {
             return _this.handleMsg(msg, type, index);
@@ -609,9 +608,13 @@
       }, {
         key: "request",
         value: function request(url, cb) {
+          if (!this.config.key) {
+            console.warn('please set key in xbossdebug.config.key');
+            return;
+          }
           var img = new window.Image();
           img.onload = cb;
-          img.src = url;
+          img.src = url + ("&key=" + this.config.key);
         }
       }, {
         key: "report",
@@ -1109,10 +1112,6 @@
         timingObj["onload"] = time.loadEventEnd - time.navigationStart;
         timingObj["fmp"] = parseInt(performance.getEntriesByType("paint")[0].startTime); // 首次渲染
         timingObj["TTI"] = time.domInteractive - time.requestStart;
-        var item;
-        for (item in timingObj) {
-          console.log(item + ":" + timingObj[item] + "毫秒(ms)");
-        }
         _this.reportPerformance(timingObj);
       };
 
@@ -1281,6 +1280,8 @@
     return XbossDebug;
   }(Events(Localstroage(Report(proxy(Config)))));
 
-  return XbossDebug;
+  window.xbossdebug = new XbossDebug();
+
+  return xbossdebug;
 
 })));

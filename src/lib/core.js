@@ -208,11 +208,10 @@ class XbossDebug extends events(localStorage(report(proxy(config)))) {
     ); // 首次渲染
     timingObj["TTI"] = time.domInteractive - time.requestStart;
     var item;
-    for (item in timingObj) {
-      console.log(item + ":" + timingObj[item] + "毫秒(ms)");
-    }
     this.reportPerformance(timingObj);
   };
 }
 
-export default XbossDebug;
+window.xbossdebug = new XbossDebug()
+
+export default xbossdebug;

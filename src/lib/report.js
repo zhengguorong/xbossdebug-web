@@ -7,7 +7,7 @@ let Report = supperclass =>
       this.errorQueue = [];
       this.perfQueue = [];
       this.repeatList = {};
-      this.url = this.config.url + `?project_name=${this.config.projectName}&err_msg=`;
+      this.url = this.config.url + '?err_msg=';
       ["log", "debug", "info", "warn", "error"].forEach((type, index) => {
         this[type] = msg => {
           return this.handleMsg(msg, type, index);
@@ -45,9 +45,13 @@ let Report = supperclass =>
     }
     // 请求服务端
     request(url, cb) {
+      if (!this.config.key) {
+        console.warn('please set key in xbossdebug.config.key')
+        return
+      }
       let img = new window.Image();
       img.onload = cb;
-      img.src = url;
+      img.src = url + `&key=${this.config.key}`;
     }
     report(cb) {
       let mergeReport = this.config.mergeReport;
