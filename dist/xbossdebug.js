@@ -1174,7 +1174,7 @@
         var _this3 = this,
             _arguments2 = arguments;
 
-        var defaultUnhandleRejection = window.onunhandledrejection || utils.noop;
+        var defaultUnhandledRejection = window.onunhandledrejection || utils.noop;
         window.onunhandledrejection = function (error) {
           if (!_this3.trigger("error", utils.toArray(_arguments2))) {
             return false;

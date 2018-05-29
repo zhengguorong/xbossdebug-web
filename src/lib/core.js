@@ -61,7 +61,7 @@ class XbossDebug extends events(localStorage(report(proxy(config)))) {
     };
   }
   rewritePromiseError() {
-    const defaultUnhandleRejection = window.onunhandledrejection || utils.noop;
+    const defaultUnhandledRejection = window.onunhandledrejection || utils.noop;
     window.onunhandledrejection = error => {
       if (!this.trigger("error", utils.toArray(arguments))) {
         return false;
