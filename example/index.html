@@ -8,14 +8,19 @@
   <script src="https://code.jquery.com/jquery-3.3.1.min.js"></script>
   <script src="../dist/xbossdebug.js"></script>
   <script>
-    xbossdebug.config.key = 'bluemoon_oa'
-    function trackError(name){
-      throw new Error('my Error msg')
-      console.error('test')
+    xbossdebug.config.key = 'test'
+    function trackError(name) {
+      // throw new Error('my Error msg')
+      var p = new Promise(function (resolve, reject) {
+        log('start new Promise...');
+        resolve(123);
+      });
     }
-   </script>
+  </script>
 </head>
+
 <body id="body">
   <div onclick="trackError('zgr')">click me to track Error</div>
 </body>
+
 </html>
