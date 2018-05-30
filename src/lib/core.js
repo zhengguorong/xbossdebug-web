@@ -12,6 +12,7 @@ class XbossDebug extends events(localStorage(report(proxy(config)))) {
     this.rewriteError();
     this.rewritePromiseError();
     this.catchClickQueue(); // 用于收集用户操作路径
+    this.catchResError(); // 获取静态资源加载异常
     setTimeout(() => {
       this.catchPerformance(); // 获取应用性能
     }, 1000);
@@ -207,9 +208,11 @@ class XbossDebug extends events(localStorage(report(proxy(config)))) {
       performance.getEntriesByType("paint")[0].startTime
     ); // 首次渲染
     timingObj["TTI"] = time.domInteractive - time.requestStart;
-    var item;
-    this.reportPerformance(timingObj);
+    this.handleMsg(timingObj, 'perf', 0)
   };
+  catchResError () {
+    
+  }
 }
 
 window.xbossdebug = new XbossDebug()

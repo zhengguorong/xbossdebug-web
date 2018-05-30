@@ -10,11 +10,7 @@
   <script>
     xbossdebug.config.key = 'test'
     function trackError(name) {
-      // throw new Error('my Error msg')
-      var p = new Promise(function (resolve, reject) {
-        log('start new Promise...');
-        resolve(123);
-      });
+      throw new Error('my Error msg')
     }
   </script>
 </head>

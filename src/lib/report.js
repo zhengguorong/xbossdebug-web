@@ -7,7 +7,7 @@ let Report = supperclass =>
       this.errorQueue = [];
       this.perfQueue = [];
       this.repeatList = {};
-      this.url = this.config.url + '?err_msg=';
+      this.url = this.config.url + "?err_msg=";
       ["log", "debug", "info", "warn", "error"].forEach((type, index) => {
         this[type] = msg => {
           return this.handleMsg(msg, type, index);
@@ -46,8 +46,8 @@ let Report = supperclass =>
     // 请求服务端
     request(url, cb) {
       if (!this.config.key) {
-        console.warn('please set key in xbossdebug.config.key')
-        return
+        console.warn("please set key in xbossdebug.config.key");
+        return;
       }
       let img = new window.Image();
       img.onload = cb;
@@ -103,9 +103,6 @@ let Report = supperclass =>
       if (!msg) {
         return false;
       }
-      if (utils.typeDecide(msg, "Object") && !msg.msg) {
-        return false;
-      }
 
       if (utils.typeDecide(msg, "Error")) {
         msg = {
@@ -116,30 +113,14 @@ let Report = supperclass =>
         };
       }
 
-      let errorMsg = utils.typeDecide(msg, "Object")
-        ? msg
-        : {
-            msg: msg,
-            level: level
-          };
+      let errorMsg = utils.typeDecide(msg, "Object")? msg : {msg: msg};
+      errorMsg.level = level;
+      errorMsg.type = type
       errorMsg = utils.assignObject(utils.getSystemParams(), errorMsg);
       if (this.catchError(errorMsg)) {
         this.send();
       }
       return errorMsg;
-    }
-    // 上报性能数据
-    reportPerformance (data, cb) {
-      this.trigger("beforeReportPerformance")
-      data = utils.assignObject(utils.getSystemParams(), data);
-      let params = utils.serializeObj(data)
-      let url = this.url + params;
-      this.request(url, () => {
-        if (cb) {
-          cb.call(this);
-        }
-        this.trigger("afterReportPerformance");
-      });
     }
   };
 

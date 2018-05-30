@@ -564,7 +564,7 @@
         _this.errorQueue = [];
         _this.perfQueue = [];
         _this.repeatList = {};
-        _this.url = _this.config.url + '?err_msg=';
+        _this.url = _this.config.url + "?err_msg=";
         ["log", "debug", "info", "warn", "error"].forEach(function (type, index) {
           _this[type] = function (msg) {
             return _this.handleMsg(msg, type, index);
@@ -609,7 +609,7 @@
         key: "request",
         value: function request(url, cb) {
           if (!this.config.key) {
-            console.warn('please set key in xbossdebug.config.key');
+            console.warn("please set key in xbossdebug.config.key");
             return;
           }
           var img = new window.Image();
@@ -679,9 +679,6 @@
           if (!msg) {
             return false;
           }
-          if (utils.typeDecide(msg, "Object") && !msg.msg) {
-            return false;
-          }
 
           if (utils.typeDecide(msg, "Error")) {
             msg = {
@@ -692,33 +689,14 @@
             };
           }
 
-          var errorMsg = utils.typeDecide(msg, "Object") ? msg : {
-            msg: msg,
-            level: level
-          };
+          var errorMsg = utils.typeDecide(msg, "Object") ? msg : { msg: msg };
+          errorMsg.level = level;
+          errorMsg.type = type;
           errorMsg = utils.assignObject(utils.getSystemParams(), errorMsg);
           if (this.catchError(errorMsg)) {
             this.send();
           }
           return errorMsg;
-        }
-        // 上报性能数据
-
-      }, {
-        key: "reportPerformance",
-        value: function reportPerformance(data, cb) {
-          var _this4 = this;
-
-          this.trigger("beforeReportPerformance");
-          data = utils.assignObject(utils.getSystemParams(), data);
-          var params = utils.serializeObj(data);
-          var url = this.url + params;
-          this.request(url, function () {
-            if (cb) {
-              cb.call(_this4);
-            }
-            _this4.trigger("afterReportPerformance");
-          });
         }
       }]);
       return _class;
@@ -1112,13 +1090,14 @@
         timingObj["onload"] = time.loadEventEnd - time.navigationStart;
         timingObj["fmp"] = parseInt(performance.getEntriesByType("paint")[0].startTime); // 首次渲染
         timingObj["TTI"] = time.domInteractive - time.requestStart;
-        _this.reportPerformance(timingObj);
+        _this.handleMsg(timingObj, 'perf', 0);
       };
 
       _this.breadcrumbs = [];
       _this.rewriteError();
       _this.rewritePromiseError();
       _this.catchClickQueue(); // 用于收集用户操作路径
+      _this.catchResError(); // 获取静态资源加载异常
       setTimeout(function () {
         _this.catchPerformance(); // 获取应用性能
       }, 1000);
@@ -1276,6 +1255,9 @@
       value: function catchPerformance() {
         window.performance && utils.handleAddListener("load", this._getTiming());
       }
+    }, {
+      key: "catchResError",
+      value: function catchResError() {}
     }]);
     return XbossDebug;
   }(Events(Localstroage(Report(proxy(Config)))));
