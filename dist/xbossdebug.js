@@ -1090,14 +1090,29 @@
         timingObj["onload"] = time.loadEventEnd - time.navigationStart;
         timingObj["fmp"] = parseInt(performance.getEntriesByType("paint")[0].startTime); // 首次渲染
         timingObj["TTI"] = time.domInteractive - time.requestStart;
-        _this.handleMsg(timingObj, 'perf', 0);
+        timingObj["subType"] = 'pagePerf';
+        _this.info(timingObj);
+      };
+
+      _this._XHRreport = function (event) {
+        var target = event.target;
+        if ("readystatechange" === event.type && target.status === 404 || target.status === 500 || "error" === event.type || "timeout" === event.type) {
+          _this.error({
+            msg: target.statusText,
+            statusCode: target.status,
+            errUrl: target.responseURL,
+            eventType: event.type,
+            subType: 'ajaxError'
+          });
+        }
       };
 
       _this.breadcrumbs = [];
       _this.rewriteError();
       _this.rewritePromiseError();
       _this.catchClickQueue(); // 用于收集用户操作路径
-      _this.catchResError(); // 获取静态资源加载异常
+      _this.catchResError(); // 收集静态资源加载错误
+      _this.catchXHRError(); // 收集ajax请求异常
       setTimeout(function () {
         _this.catchPerformance(); // 获取应用性能
       }, 1000);
@@ -1139,7 +1154,8 @@
               colNum: col,
               targetUrl: url,
               level: 4,
-              breadcrumbs: JSON.stringify(_this2.breadcrumbs)
+              breadcrumbs: JSON.stringify(_this2.breadcrumbs),
+              subType: 'jsError'
             });
           }
 
@@ -1257,7 +1273,47 @@
       }
     }, {
       key: "catchResError",
-      value: function catchResError() {}
+      value: function catchResError() {
+        var _this4 = this;
+
+        window.addEventListener('error', function (event) {
+          var target = event.target;
+          if (target && target.baseURI) {
+            _this4.error({
+              msg: target.outerHTML,
+              errUrl: target.baseURI,
+              subType: 'res'
+            });
+          }
+        }, true);
+      }
+    }, {
+      key: "catchXHRError",
+      value: function catchXHRError() {
+        var _this5 = this;
+
+        var OriginXMLHttpRequest = XMLHttpRequest;
+        window.XMLHttpRequest = function () {
+          var XHR = new OriginXMLHttpRequest();
+          XHR.addEventListener('readystatechange', _this5._XHRreport);
+          XHR.addEventListener('timeout', _this5._XHRreport);
+          XHR.addEventListener('error', _this5._XHRreport);
+          // 因为ajax为异步，为了防止开始时间被其他请求覆盖，用时间戳区分。
+          var now = new Date().getTime().toString();
+          _this5.ajaxStartTime = {};
+          _this5.ajaxEndTime = {};
+          _this5.useTime = {};
+          XHR.addEventListener('loadstart', function (event) {
+            _this5.ajaxStartTime[now] = new Date().getTime();
+          });
+          XHR.addEventListener('loadend', function (event) {
+            _this5.ajaxEndTime[now] = new Date().getTime();
+            _this5.useTime[now] = _this5.ajaxEndTime[now] - _this5.ajaxStartTime[now];
+            _this5.info({ ajaxStartTime: _this5.ajaxStartTime[now], ajaxEndTime: _this5.ajaxEndTime[now], useTime: _this5.useTime[now], subType: 'ajaxPerf' });
+          });
+          return XHR;
+        };
+      }
     }]);
     return XbossDebug;
   }(Events(Localstroage(Report(proxy(Config)))));

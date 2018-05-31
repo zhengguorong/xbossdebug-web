@@ -12,7 +12,8 @@ class XbossDebug extends events(localStorage(report(proxy(config)))) {
     this.rewriteError();
     this.rewritePromiseError();
     this.catchClickQueue(); // 用于收集用户操作路径
-    this.catchResError(); // 获取静态资源加载异常
+    this.catchResError(); // 收集静态资源加载错误
+    this.catchXHRError();// 收集ajax请求异常
     setTimeout(() => {
       this.catchPerformance(); // 获取应用性能
     }, 1000);
@@ -53,7 +54,8 @@ class XbossDebug extends events(localStorage(report(proxy(config)))) {
           colNum: col,
           targetUrl: url,
           level: 4,
-          breadcrumbs: JSON.stringify(this.breadcrumbs)
+          breadcrumbs: JSON.stringify(this.breadcrumbs),
+          subType: 'jsError'
         });
       }
 
@@ -208,10 +210,55 @@ class XbossDebug extends events(localStorage(report(proxy(config)))) {
       performance.getEntriesByType("paint")[0].startTime
     ); // 首次渲染
     timingObj["TTI"] = time.domInteractive - time.requestStart;
-    this.handleMsg(timingObj, 'perf', 0)
+    timingObj["subType"] = 'pagePerf'
+    this.info(timingObj)
   };
   catchResError () {
-    
+    window.addEventListener('error', event =>{
+      let target = event.target;
+      if (target && target.baseURI) {
+        this.error({
+          msg: target.outerHTML,
+          errUrl: target.baseURI,
+          subType: 'res'
+        })
+      }
+    }, true)
+  }
+  catchXHRError () {
+    let OriginXMLHttpRequest = XMLHttpRequest
+    window.XMLHttpRequest = () => {
+      let XHR = new OriginXMLHttpRequest()
+      XHR.addEventListener('readystatechange', this._XHRreport)
+      XHR.addEventListener('timeout', this._XHRreport)
+      XHR.addEventListener('error', this._XHRreport)
+      // 因为ajax为异步，为了防止开始时间被其他请求覆盖，用时间戳区分。
+      let now = new Date().getTime().toString()
+      this.ajaxStartTime = {}
+      this.ajaxEndTime = {}
+      this.useTime = {}
+      XHR.addEventListener('loadstart', event => {
+        this.ajaxStartTime[now] = new Date().getTime()
+      })
+      XHR.addEventListener('loadend', event => {
+        this.ajaxEndTime[now] = new Date().getTime()
+        this.useTime[now] = this.ajaxEndTime[now] - this.ajaxStartTime[now]
+        this.info({ajaxStartTime: this.ajaxStartTime[now], ajaxEndTime: this.ajaxEndTime[now], useTime: this.useTime[now], subType: 'ajaxPerf'})
+      })
+      return XHR;
+    }
+  }
+  _XHRreport = event => {
+    let target = event.target;
+    if (("readystatechange" === event.type && target.status === 404 || target.status === 500) || "error" === event.type || "timeout" === event.type) {
+      this.error({
+        msg: target.statusText,
+        statusCode: target.status,
+        errUrl: target.responseURL,
+        eventType: event.type,
+        subType: 'ajaxError'
+      })
+    }
   }
 }
 

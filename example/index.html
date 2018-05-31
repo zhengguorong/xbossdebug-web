@@ -10,13 +10,17 @@
   <script>
     xbossdebug.config.key = 'test'
     function trackError(name) {
-      throw new Error('my Error msg')
+      $.ajax({url:'http://h5.limesoftware.cn', timeout: 1000}, function (res) {
+        console.log(res)
+      })
+      // throw new Error('my Error msg')
     }
   </script>
 </head>
 
 <body id="body">
   <div onclick="trackError('zgr')">click me to track Error</div>
+  <!-- <img id="image" src="http://www.limesoftware.cn/123.png" /> -->
 </body>
 
 </html>
