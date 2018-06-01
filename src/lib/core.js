@@ -234,16 +234,13 @@ class XbossDebug extends events(localStorage(report(proxy(config)))) {
       XHR.addEventListener('error', this._XHRreport)
       // 因为ajax为异步，为了防止开始时间被其他请求覆盖，用时间戳区分。
       let now = new Date().getTime().toString()
-      this.ajaxStartTime = {}
-      this.ajaxEndTime = {}
-      this.useTime = {}
       XHR.addEventListener('loadstart', event => {
-        this.ajaxStartTime[now] = new Date().getTime()
+        this.ajaxStartTime = new Date().getTime()
       })
       XHR.addEventListener('loadend', event => {
-        this.ajaxEndTime[now] = new Date().getTime()
-        this.useTime[now] = this.ajaxEndTime[now] - this.ajaxStartTime[now]
-        this.info({ajaxStartTime: this.ajaxStartTime[now], ajaxEndTime: this.ajaxEndTime[now], useTime: this.useTime[now], subType: 'ajaxPerf'})
+        this.ajaxEndTime = new Date().getTime()
+        this.useTime = this.ajaxEndTime - this.ajaxStartTime
+        this.info({ajaxStartTime: this.ajaxStartTime, ajaxEndTime: this.ajaxEndTime, useTime: this.useTime, subType: 'ajaxPerf'})
       })
       return XHR;
     }

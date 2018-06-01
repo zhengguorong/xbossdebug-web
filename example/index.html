@@ -10,9 +10,12 @@
   <script>
     xbossdebug.config.key = 'test'
     function trackError(name) {
-      $.ajax({url:'http://h5.limesoftware.cn', timeout: 1000}, function (res) {
+      for (var i = 0;i < 20; i++) {
+        $.ajax({url:'http://h5.limesoftware.cn', timeout: 1000}, function (res) {
         console.log(res)
       })
+      }
+
       // throw new Error('my Error msg')
     }
   </script>

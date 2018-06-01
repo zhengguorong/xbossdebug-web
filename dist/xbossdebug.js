@@ -1300,16 +1300,13 @@
           XHR.addEventListener('error', _this5._XHRreport);
           // 因为ajax为异步，为了防止开始时间被其他请求覆盖，用时间戳区分。
           var now = new Date().getTime().toString();
-          _this5.ajaxStartTime = {};
-          _this5.ajaxEndTime = {};
-          _this5.useTime = {};
           XHR.addEventListener('loadstart', function (event) {
-            _this5.ajaxStartTime[now] = new Date().getTime();
+            _this5.ajaxStartTime = new Date().getTime();
           });
           XHR.addEventListener('loadend', function (event) {
-            _this5.ajaxEndTime[now] = new Date().getTime();
-            _this5.useTime[now] = _this5.ajaxEndTime[now] - _this5.ajaxStartTime[now];
-            _this5.info({ ajaxStartTime: _this5.ajaxStartTime[now], ajaxEndTime: _this5.ajaxEndTime[now], useTime: _this5.useTime[now], subType: 'ajaxPerf' });
+            _this5.ajaxEndTime = new Date().getTime();
+            _this5.useTime = _this5.ajaxEndTime - _this5.ajaxStartTime;
+            _this5.info({ ajaxStartTime: _this5.ajaxStartTime, ajaxEndTime: _this5.ajaxEndTime, useTime: _this5.useTime, subType: 'ajaxPerf' });
           });
           return XHR;
         };
