@@ -207,7 +207,7 @@ class XbossDebug extends events(localStorage(report(proxy(config)))) {
       time.domContentLoadedEventEnd - time.navigationStart;
     timingObj["onload"] = time.loadEventEnd - time.navigationStart;
     timingObj["fmp"] = parseInt(
-      performance.getEntriesByType("paint")[0].startTime
+      performance.getEntriesByType && performance.getEntriesByType("paint")[0].startTime || 0
     ); // 首次渲染
     timingObj["TTI"] = time.domInteractive - time.requestStart;
     timingObj["subType"] = 'pagePerf'

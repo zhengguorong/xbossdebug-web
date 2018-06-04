@@ -1,6 +1,6 @@
 {
   "name": "xbossdebug-web",
-  "version": "1.0.3",
+  "version": "1.0.5",
   "description": "",
   "main": "dist/xbossdebug.min.js",
   "directories": {
