@@ -5,7 +5,6 @@ let Report = supperclass =>
     constructor(options) {
       super(options);
       this.errorQueue = [];
-      this.perfQueue = [];
       this.repeatList = {};
       this.url = this.config.url + "?err_msg=";
       ["log", "debug", "info", "warn", "error"].forEach((type, index) => {
@@ -102,15 +101,6 @@ let Report = supperclass =>
     handleMsg(msg, type, level) {
       if (!msg) {
         return false;
-      }
-
-      if (utils.typeDecide(msg, "Error")) {
-        msg = {
-          msg: msg.message,
-          ext: {
-            stack: msg.stack
-          }
-        };
       }
 
       let errorMsg = utils.typeDecide(msg, "Object")? msg : {msg: msg};
